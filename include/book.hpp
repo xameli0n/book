@@ -1,5 +1,6 @@
 #pragma once
 
+#include <flat_map>
 #include <format>
 #include <stdexcept>
 #include <string_view>
@@ -11,7 +12,16 @@ enum class Genre { Fiction, NonFiction, SciFi, Biography, Mystery, Unknown };
 // Ваш код для constexpr преобразования строк в enum::Genre и наоборот здесь
 
 constexpr Genre GenreFromString(std::string_view s) {
-    // Ваш код здесь
+    if (s == "Fiction")
+        return Genre::Fiction;
+    if (s == "NonFiction")
+        return Genre::NonFiction;
+    if (s == "SciFi")
+        return Genre::SciFi;
+    if (s == "Biography")
+        return Genre::Biography;
+    if (s == "Mystery")
+        return Genre::Mystery;
     return Genre::Unknown;
 }
 
@@ -25,7 +35,13 @@ struct Book {
     double rating;
     int read_count;
 
-    // Ваш код для конструкторов здесь
+    // constexpr-конструктор, принимающий Genre как строку
+    constexpr Book(std::string_view a, std::string t, int y, std::string_view g_str, double r, int rc)
+        : author(a), title(std::move(t)), year(y), genre(GenreFromString(g_str)), rating(r), read_count(rc) {}
+
+    // constexpr-конструктор, принимающий Genre как enum
+    constexpr Book(std::string_view a, std::string t, int y, Genre g, double r, int rc)
+        : author(a), title(std::move(t)), year(y), genre(g), rating(r), read_count(rc) {}
 };
 }  // namespace bookdb
 
@@ -57,6 +73,35 @@ struct formatter<bookdb::Genre, char> {
     }
 };
 
-// Ваш код для std::formatter<Book> здесь
+template <>
+struct formatter<bookdb::Book, char> {
+    template <typename FormatContext>
+    auto format(const bookdb::Book &b, FormatContext &fc) const {
+        return format_to(fc.out(), "Author: {}, Title: {}, Year: {}, Genre: {}, Rating: {}, Read Count: {}", b.author,
+                         b.title, b.year, b.genre, b.rating, b.read_count);
+    }
+
+    constexpr auto parse(format_parse_context &ctx) {
+        return ctx.begin();  // Просто игнорируем пользовательский формат
+    }
+};
+
+template <typename K, typename V, typename C, typename KC, typename VC>
+struct formatter<std::flat_map<K, V, C, KC, VC>, char> {
+    template <typename FormatContext>
+    auto format(const std::flat_map<K, V, C, KC, VC> &m, FormatContext &fc) const {
+        format_to(fc.out(), "{{");
+        bool first = true;
+        for (const auto &[k, v] : m) {
+            if (!first)
+                format_to(fc.out(), ", ");
+            format_to(fc.out(), "{}: {}", k, v);
+            first = false;
+        }
+        return format_to(fc.out(), "}}");
+    }
+
+    constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+};
 
 }  // namespace std
