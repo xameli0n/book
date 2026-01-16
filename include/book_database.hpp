@@ -61,12 +61,15 @@ public:
     const_reference back() const { return books_.back(); }
 
     void push_back(const Book &book) {
-        books_.push_back(book);
-        authors_.insert(std::string(book.author));
+        auto author_view = storeAuthor(book.author);
+        Book copy = book;
+        copy.author = author_view;
+        books_.push_back(std::move(copy));
     }
 
     void push_back(Book &&book) {
-        authors_.insert(std::string(book.author));
+        auto author_view = storeAuthor(book.author);
+        book.author = author_view;
         books_.push_back(std::move(book));
     }
 
@@ -76,8 +79,10 @@ public:
 
     template <typename... Args>
     void emplace_back(Args &&...args) {
-        books_.emplace_back(std::forward<Args>(args)...);
-        authors_.insert(std::string(books_.back().author));
+        Book temp_book(std::forward<Args>(args)...);
+        auto author_view = storeAuthor(temp_book.author);
+        temp_book.author = author_view;
+        books_.push_back(std::move(temp_book));
     }
 
     template <typename... Args>
@@ -90,6 +95,13 @@ public:
     const AuthorContainer &GetAuthors() const { return authors_; }
 
 private:
+    template <typename S>
+    std::string_view storeAuthor(S &&s) {
+        std::string key(std::forward<S>(s));
+        auto [it, inserted] = authors_.insert(std::move(key));
+        return *it;
+    }
+
     BookContainer books_;
     AuthorContainer authors_;
 };

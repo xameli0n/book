@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <string>
 #include <string_view>
 
@@ -8,25 +9,21 @@ namespace bookdb {
 struct TransparentStringLess {
     using is_transparent = void;
 
-    bool operator()(const std::string &lhs, const std::string &rhs) const { return lhs < rhs; }
-
-    bool operator()(const std::string &lhs, std::string_view rhs) const { return lhs < rhs; }
-
-    bool operator()(std::string_view lhs, const std::string &rhs) const { return lhs < rhs; }
-
-    bool operator()(std::string_view lhs, std::string_view rhs) const { return lhs < rhs; }
+    template <typename T, typename U>
+        requires(std::convertible_to<T, std::string_view> && std::convertible_to<U, std::string_view>)
+    bool operator()(T &&lhs, U &&rhs) const {
+        return std::string_view(std::forward<T>(lhs)) < std::string_view(std::forward<U>(rhs));
+    }
 };
 
 struct TransparentStringEqual {
     using is_transparent = void;
 
-    bool operator()(const std::string &lhs, const std::string &rhs) const { return lhs == rhs; }
-
-    bool operator()(const std::string &lhs, std::string_view rhs) const { return lhs == rhs; }
-
-    bool operator()(std::string_view lhs, const std::string &rhs) const { return lhs == rhs; }
-
-    bool operator()(std::string_view lhs, std::string_view rhs) const { return lhs == rhs; }
+    template <typename T, typename U>
+        requires(std::convertible_to<T, std::string_view> && std::convertible_to<U, std::string_view>)
+    bool operator()(T &&lhs, U &&rhs) const {
+        return std::string_view(std::forward<T>(lhs)) == std::string_view(std::forward<U>(rhs));
+    }
 
     bool operator()(const char *lhs, const std::string &rhs) const { return std::string_view(lhs) == rhs; }
 
